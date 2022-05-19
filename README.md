@@ -218,36 +218,49 @@ Confirm that clicking these updated Delete buttons on both pages triggers GET re
 >The server logs should report a status code of 302 (REDIRECT) for `GET /stuff/item/:id/delete`, followed by a `GET /stuff`.
 
 
-#### (4.4) Using Forms
+#### (4.4) Overview: Using Forms and POST requests
 
-### (4.4.1) Implementing the Create operation 
+So far, all of the interaction between the user and the web server have been through GET requests sent by the browser. These are typically triggered by
 
-// TODO : Explain Post vs Get
+1. A URL being entered into the browser's URL bar
+2. A hyperlink being clicked
+3. A link to a resource on an HTML page (e.g. CSS, images, etc.) 
+4. Being redirected to a URL by the server
 
+In addition to GET requests, which are typically associated with *downloading* data, browsers can also send POST requests, which are typically are used for *uploading* data. 
 
-#### Sending an "Add" POST request: - the "Add" form
+Most commonly, POST requests are triggered via **HTML forms**, where users enter values into various inputs, then "Submit" the contents of the form. 
 
-Let's make the Add Stuff form on the `/stuff' page work!
+To make an HTML `<form>` element that sends a POST request upon Submit, its HTML attribute `method` should be set to `"post"`. 
 
-Update the form in the `stuff.ejs` template:
+Here is a simple example of a form designed to send a POST request:
 
 ```html
-    <form method="post" action="/stuff"> 
-```
-The action is actually not necessary to be defined explicitly; by default, the action is the URL of the current page.
-
-Note the attribute `name` of the various input elements:
-```html
-    <input type="text" name="name" id="nameInput" class="validate" data-length="32" required>
-    ...
-    <input type="number" name="quantity" id="quantityInput" value=1 required>
+<form method="post" action="/sample/url">
+    <input type="text" name="name">
+    <input type="number" name="age">
+    <button type="submit">
+</form>
 ```
 
-The form inputs are named "name" and "quantity".
+A few more details about standard form usage:
 
-#### Handling an "Add" POST request:
+- Optionally, the attribute `action` can be set to the URL to which the post requests should be sent.  If `action` is not defined, the form POSTs to the same URL of the current page.
+
+- It is important that each `<input>` element in the form includes a `name` attribute, which describes the meaning of the input.  
+
+- A `<button>` element with attribute `type="submit"` is usually included in a form too; clicking this button triggers the POST request.
+
+Fortunately, our prototypes already had two forms set up - the only thing that needs to be changed is their `method` must be set to "post". Then, we just need to set up POST routes (which work similarly to GET routes) on the server to handle the requests. See the sections below for step by step instructions.
+
+>NOTE: If the `method` is left undefined (like our prototype's forms were) or explictly set to `"get"`, HTML forms can also send GET requests - the form will construct a special URL from the input values, acting like a customizable hyperlink. 
+> If you click submit on our app's forms now, they appear to refresh the page. But if you look at the URL bar, the new URL includes a `?` symbol, followed by the form's inputs. Express typically ignores that part of the URL when resolving the matching GET route path, but they can be treated as **parameters**. **Search bars** are a common application of this kind of form and parameterized GET request; we will add one later!
+
+### (4.4.1) Configuring Express to parse POST request bodies
 
 // TODO: Explain URL-embedded vs multipart
+
+In order for Express to handle POST requests more easily, we need to add some middleware. 
 
 Add this line to the middleware section (around other `app.use` lines) in `app.js`
 ```js
@@ -266,8 +279,31 @@ app.post("/stuff", ( req, res ) => {
 }
 ```
 
+### (4.4.2) Implementing the Create operation 
 
-Specifically, add this code to your `app.js`, below the other routes.
+#### (4.4.2.1) Sending an "Add" POST request: - the "Add" form
+
+Let's make the Add Stuff form on the `/stuff' page work!
+
+Update the form in the `stuff.ejs` template:
+
+```html
+    <form method="post" action="/stuff"> 
+```
+Again, the `action` is actually not necessary to be defined explicitly; by default, the action is the URL of the current page.
+
+Note the attribute `name` of the various input elements:
+```html
+    <input type="text" name="name" id="nameInput" class="validate" data-length="32" required>
+    ...
+    <input type="number" name="quantity" id="quantityInput" value=1 required>
+```
+
+Note that the form inputs are named "name" and "quantity".
+
+#### Handling an "Add" POST request:
+
+Add this code to your `app.js`, below the other routes.
 ```js
 // define a route for item CREATE
 const create_item_sql = `
@@ -288,7 +324,13 @@ app.post("/stuff", ( req, res ) => {
 })
 ```
 
-// TODO explanation.
+1. This POST handler receives the form data, which includes the values of the "name" and "quantity" inputs. These are accesible via `req.body.name` and `req.body.quantity`.
+
+2. Those input values are used to prepare and excute an `INSERT` SQL statement, which adds a new row to the `stuff` table with the form values. 
+
+3. Upon successful execution of the SQL, the `results` returned from the database includes `insertId`, the value of the primary key for the newly inserted row.  
+
+4. The handler then (finally) responds to the HTTP request a "redirect". (HTTP status code 302) - essentially, an instruction to navigate to (that is, send *another* GET request) a different URL. In this case, `results.insertId` is used to redirect to the item detail page of the newly added row. 
 
 ### (4.5) Implementing the Update operation - 
 
@@ -302,7 +344,10 @@ The "Edit" form in `item.ejs` needs updating:
 
 Again, the `action` attribute is optional here - the default action is the URL of the page, which matches the update to be done.
 
-Note the attribute `name` of the various input elements:
+Once again, note the attribute `name` of the various input elements: "name", "quantity", and "description".
+
+
+#### Handling an "Update" POST request:
 
 ```js
 // define a route for item UPDATE
@@ -327,7 +372,12 @@ app.post("/stuff/item/:id", ( req, res ) => {
 })
 ```
 
-// TODO: Explanation.
+
+1. This POST handler receives the form data, which includes the values of the "name" and "quantity" and "description" inputs. These are accesible via `req.body.name`, `req.body.quantity` and `req.body.description`.
+
+2. Those input values, along with `id` in the URL (`req.params.id`), are used to prepare and excute an `UPDATE` SQL statement, which changes the values in the row with matching `id` to the new the form values. 
+ 
+3. and 4. Upon successful execution of the SQL, the handler then (finally) responds to the HTTP request a "redirect" (HTTP status code 302) - to  a different URL. In this case, `req.params.id` is used to redirect to the item detail page of the changed row.  
 
 #### (4.5.1) Pre-populating the "Edit" form 
 
@@ -342,4 +392,7 @@ It would be nice if the Edit form already contained the current values of the da
 ```
 
 
+## Summary of CRUD operations and routes
 
+
+// TODO
