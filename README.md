@@ -43,9 +43,10 @@ In the last tutorial, we already implemented 2 read operations - one for a speci
 
 Now, we can start to implement the other CRUD operations, and see how they are similar and different from the Read flow. 
 
-Let's begin by writing SQL queries that will be used for the other CRUD operations. We'll put them in the subdirectory `db/queries/crud`. 
-
 ### (4.2) Writing SQL queries for CRUD operations
+
+Let's begin by writing SQL queries that will be used for the other CRUD operations. We'll put them in the subdirectory `db/queries/crud`, and eventually use them in `app.js`.
+
 
 Each CRUD operation has a corresponding SQL command that is typically used in the "query" step of the flow:
 
@@ -59,7 +60,7 @@ Each CRUD operation has a corresponding SQL command that is typically used in th
 
 #### (4.2.1)  INSERT query (Create):
 
-We actually wrote some INSERT queries in part 3 of the tutorials; 
+> We actually wrote an INSERT query in part 3 of the tutorials (`db/queries/init/insert_stuff_table.sql`), and used them in our database initializing script (`db/db_init.js`). This is very similar.
 
 For the **Create** operation, `insert_stuff.sql` adds a new entry to the `stuff` table, given initial `item` and `quantity` values. 
 No `id` is specified; the database will automatically determine a unique `id` for the new element.
@@ -139,19 +140,19 @@ app.get("/stuff/item/:id/delete", ( req, res ) => {
 Let's breakdown what the new code does; 
 >```
 > Browser --- request: GET URL ------> App Server
->                                      App Server --- SELECT query--> Database
->                                      App Server <-- results ARRAY ---- Database
-> Browser <- response: RENDERED PAGE-> App Server
+>                                      App Server --- SELECT query ---> Database
+>                                      App Server <-- confirmation ---- Database
+> Browser <- response: REDIRECT------> App Server
 >```
 
 1. **The web server receives a GET HTTP request from a browser** - either by entering a URL into their browser, or clicking a hyperlink.
 2. **The web server makes a DELETE query to the database**, using the `id` in the URL to complete the query.
 3. **The web server waits for results of the query**; the contents of the results returned are not particularly important, but we want to know when the request is complete and that there was no error.
-4. **The web server uses the query results to form and send the HTTP response back to the browser**; Rather than render a new page, the server sends a "redirect" that navigates the user back to the homepage to see. 
+4. **The web server uses the query results to form and send the HTTP response back to the browser**; Rather than render a new page, the server sends a *redirect* (HTTP status code 302) that navigates the user back to the inventory page, where the user can visually confirm the removal of the item. Such a response is essentially an instruction for the browser to navigate to (that is, send *another* GET request) a different URL 
+    > Alternatively, the server could respond by rendering a special page with a message confirming the success of the deletion, with a link back to the inventory page. Such a confirmation page might be clearer, but often times a redirect is simpler, cutting out what might be a tedious extra click for the user.
 
 Now test out the handler by entering URLs into your browser of the format `/stuff/item/:id/delete`, replacing `:id` with the `id` values of entries in the database's `stuff` table (e.g. 1, 2, etc.).
 
-> If we wanted, we could instead render a special response/page that gives the user confirmation of their successful deletion. However, being redirected immediately to the inventory page where the user can visually confirm the removal of the item also communicates the success of the operation.
 
 Re-run your `db_init.js` script to re-set your database afterwards.
 
@@ -218,7 +219,7 @@ Confirm that clicking these updated Delete buttons on both pages triggers GET re
 >The server logs should report a status code of 302 (REDIRECT) for `GET /stuff/item/:id/delete`, followed by a `GET /stuff`.
 
 
-#### (4.4) Overview: Using Forms and POST requests
+#### (4.4) Using Forms and POST requests
 
 So far, all of the interaction between the user and the web server have been through GET requests sent by the browser. These are typically triggered by
 
@@ -243,7 +244,7 @@ Here is a simple example of a form designed to send a POST request:
 </form>
 ```
 
-A few more details about standard form usage:
+A few more details about standard form usage, as visible in this example:
 
 - Optionally, the attribute `action` can be set to the URL to which the post requests should be sent.  If `action` is not defined, the form POSTs to the same URL of the current page.
 
@@ -255,18 +256,18 @@ Fortunately, our prototypes already had two forms set up - the only thing that n
 
 >NOTE: If the `method` is left undefined (like our prototype's forms were) or explictly set to `"get"`, HTML forms can also send GET requests - the form will construct a special URL from the input values, acting like a customizable hyperlink. 
 > If you click submit on our app's forms now, they appear to refresh the page. But if you look at the URL bar, the new URL includes a `?` symbol, followed by the form's inputs. Express typically ignores that part of the URL when resolving the matching GET route path, but they can be treated as **parameters**. **Search bars** are a common application of this kind of form and parameterized GET request; we will add one later!
+> POST requests use a similar URL-encoding scheme to upload the inputs. However, POST requests do not update the URL bar of the browser. This is by design, as you wouldn't want someone to bookmark or share a link for a POST request.
 
 ### (4.4.1) Configuring Express to parse POST request bodies
 
-// TODO: Explain URL-embedded vs multipart
-
-In order for Express to handle POST requests more easily, we need to add some middleware. 
+In order for Express to handle POST requests sent from forms more easily, we need to add some middleware. 
 
 Add this line to the middleware section (around other `app.use` lines) in `app.js`
 ```js
 // Configure Express to parse URL-encoded POST request bodies (traditional forms)
 app.use( express.urlencoded({ extended: false }) );
 ```
+
 
 To handle a post request to the URL `/stuff`, we can use a route definition like this:
 ```js
@@ -280,6 +281,7 @@ app.post("/stuff", ( req, res ) => {
 ```
 
 ### (4.4.2) Implementing the Create operation 
+
 
 #### (4.4.2.1) Sending an "Add" POST request: - the "Add" form
 
@@ -324,15 +326,25 @@ app.post("/stuff", ( req, res ) => {
 })
 ```
 
-1. This POST handler receives the form data, which includes the values of the "name" and "quantity" inputs. These are accesible via `req.body.name` and `req.body.quantity`.
 
-2. Those input values are used to prepare and excute an `INSERT` SQL statement, which adds a new row to the `stuff` table with the form values. 
+Let's break down how the code we've just added implements the CREATE operation flow:
 
-3. Upon successful execution of the SQL, the `results` returned from the database includes `insertId`, the value of the primary key for the newly inserted row.  
+>```
+> Browser --- request: POST URL -----> App Server
+>                                      App Server --- SELECT query ---> Database
+>                                      App Server <-- confirmation ---- Database
+> Browser <- response: REDIRECT------> App Server
+>```
 
-4. The handler then (finally) responds to the HTTP request a "redirect". (HTTP status code 302) - essentially, an instruction to navigate to (that is, send *another* GET request) a different URL. In this case, `results.insertId` is used to redirect to the item detail page of the newly added row. 
+1. **The web server receives a POST HTTP request from a browser** - the user submits an HTML form. This POST handler receives the form data, which includes the values of the "name" and "quantity" inputs. These are accesible via `req.body.name` and `req.body.quantity`.
+2. **The web server makes an INSERT query to the database**. Those input values are used to prepare and excute an `INSERT` SQL statement, which adds a new row to the `stuff` table with the form values. 
+3. **The web server waits for results of the query**; upon successful execution of the SQL, the `results` returned from the database includes `insertId`, the value of the primary key for the newly inserted row.
+4. **The web server uses the query results to form and send the HTTP response back to the browser**. Once again, rather than generate a new page the server sends a "redirect" to the item detail page of the newly created item.  The `results.insertId` is used to construct the matching URL.
+    > Again, the server could respond by rendering a special page with a message confirming the success of the create operation, but it makes sense to simply show the user the new page that the operation has produced.
 
 ### (4.5) Implementing the Update operation - 
+
+The Update operation is extremely similar to the Create operation.
 
 #### Sending an Update POST request: - the "Edit" form
 
@@ -372,16 +384,24 @@ app.post("/stuff/item/:id", ( req, res ) => {
 })
 ```
 
+Once again, let's break the code down and see how the Update operation flow works:
 
-1. This POST handler receives the form data, which includes the values of the "name" and "quantity" and "description" inputs. These are accesible via `req.body.name`, `req.body.quantity` and `req.body.description`.
+>```
+> Browser --- request: POST URL -----> App Server
+>                                      App Server --- SELECT query ---> Database
+>                                      App Server <-- confirmation ---- Database
+> Browser <- response: REDIRECT------> App Server
+>```
 
-2. Those input values, along with `id` in the URL (`req.params.id`), are used to prepare and excute an `UPDATE` SQL statement, which changes the values in the row with matching `id` to the new the form values. 
- 
-3. and 4. Upon successful execution of the SQL, the handler then (finally) responds to the HTTP request a "redirect" (HTTP status code 302) - to  a different URL. In this case, `req.params.id` is used to redirect to the item detail page of the changed row.  
+1. **The web server receives a POST HTTP request from a browser** - the user submits an HTML form. This POST handler receives the form data, which includes the values of the "name" and "quantity" and "description" inputs. These are accesible via `req.body.name`, `req.body.quantity` and `req.body.description`.
+2. **The web server makes an UPDATE query to the database**. Those input values, along with `id` in the URL (`req.params.id`), are used to prepare and excute an `UPDATE` SQL statement, which changes the values in the row with matching `id` to the new the form values. 
+3. **The web server waits for results of the query**; upon successful execution of the SQL,  `results` are returned from the database. However, there isn't much information that we're interested in beyond whether it was successful or if there was an error.
+4. **The web server uses the query results to form and send the HTTP response back to the browser**. Once again, rather than generate a new page the server sends a "redirect" to the item detail page of the updated item.  In this case, `req.params.id` is used to construct the matching URL.
+    > Again, the server could respond by rendering a special page with a message confirming the success of the update operation, but it makes sense to simply show the user the page that the operation has changed.
 
 #### (4.5.1) Pre-populating the "Edit" form 
 
-It would be nice if the Edit form already contained the current values of the data. This can be easily updated by adding `value` attributes and using EJS to set them with the data context, much the way the rest of the page includes the data.
+Lastly, it would be nice if the Edit form already contained the current values of the data. This can be easily updated by adding `value` attributes and using EJS to set them with the data context, much the way the rest of the page includes the data.
 
 ```html
 <input type="text" name="name" id="nameInput" class="validate" data-length="32" value="<%= item%>" required>
@@ -392,7 +412,9 @@ It would be nice if the Edit form already contained the current values of the da
 ```
 
 
-## Summary of CRUD operations and routes
+## Summary of CRUD operations:
 
 
-// TODO
+## What's next?
+
+
