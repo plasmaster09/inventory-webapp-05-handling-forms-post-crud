@@ -7,7 +7,7 @@ In this tutorial, we will continue to work across all 3 layers (Browser, Web Ser
 
 Our app currently allows users to see (Read) data from the database, but not make any changes to the database; we will add functionality for the other three CRUD operations that cause database changes: Create, Update, and Delete.
 
-## (4.1) The big picture for CRUD operations
+## (5.0) The big picture for CRUD operations
 
 CRUD is an acronym for the 4 basic data storage operations: Create, Read, Update, and Delete. Data-based applications typically provide one or more interactive ways for users to do each of these operations.
 
@@ -25,7 +25,7 @@ Recall from last tutorial that our web-app's "flow" generally follows this patte
 The exact details of how each of the 4 steps works can vary, but every operation we implement in this tutorial follows this pattern.
 
 
-### Review: The flow of the Read operations
+### (5.0.1) Review: The flow of the Read operations
 
 In the last tutorial, we already implemented 2 read operations - one for a specific item, one for the entire inventory - but its worth reviewing how it fits the 4-step pattern described above:
 
@@ -43,7 +43,7 @@ In the last tutorial, we already implemented 2 read operations - one for a speci
 
 Now, we can start to implement the other CRUD operations, and see how they are similar and different from the Read flow. 
 
-### (4.2) Writing SQL queries for CRUD operations
+## (5.1) Writing SQL queries for CRUD operations
 
 Let's begin by writing SQL queries that will be used for the other CRUD operations. We'll put them in the subdirectory `db/queries/crud`, and eventually use them in `app.js`.
 
@@ -58,7 +58,7 @@ Each CRUD operation has a corresponding SQL command that is typically used in th
 | Delete    | DELETE      | Remove existing entry/entries                    |
 
 
-#### (4.2.1)  INSERT query (Create):
+### (5.1.1) INSERT query (Create):
 
 > We actually wrote an INSERT query in part 3 of the tutorials (`db/queries/init/insert_stuff_table.sql`), and used them in our database initializing script (`db/db_init.js`). This is very similar.
 
@@ -74,7 +74,7 @@ VALUES
 
 If successful, this operation returns the `id` (primary key) of the newly inserted entry.
 
-#### (4.2.2)  UPDATE query:
+### (5.1.2)  UPDATE query:
 For the **Update** operation, `update_stuff.sql` updates the `item`, `quantity`, and `description` values for an entry from the `stuff` table, matching a given `id`:
 
 ```sql
@@ -91,7 +91,7 @@ WHERE
 This operation doesn't really return data, although it does provide confirmation of how many rows get updated. (Since the `id` is a primary key, it should be just 1 or 0)
 
 
-#### (4.2.3)  DELETE query:
+### (5.1.3) DELETE query:
 
 For the **Delete** operation, `delete_stuff.sql` deletes an entry from the `stuff` table, matching a given `id`:
 
@@ -107,13 +107,13 @@ This operation doesn't really return data, although it does provide confirmation
 
 
 
-### (4.3) Implementing the Delete Operation
+## (5.2) Implementing the Delete Operation
 
 Although it is listed last among the CRUD operations, let's begin by implementing the **Delete** functionality, because it is most similar to the flow of the Read operation. 
 
 Similar to how our app interprets to GET requests to the URL `/stuff/item/:id` as a Read operation for the entry with given `id`, our app will interpret GET requests to the URL `stuff/item/:id/delete` as a Delete operation for the entry with given `id`.
 
-### (4.3.1) Handling a Delete GET request:
+### (5.2.1) Handling a Delete GET request:
 
 Add the following code to `app.js`, below the existing routes:
 
@@ -167,7 +167,7 @@ Re-run your `db_init.js` script to re-set your database afterwards.
 > More recently, with the advent of client-side rendered (CSR) applications, there are alternative ways to doing this. We'll explore these much later.
 
 
-### (4.3.2) Making the "Delete" button send a GET request
+### (5.2.2) Making the "Delete" button send a GET request
 
 We don't really intend for users to type raw URLs into their browser to trigger a deletion request; rather, we can create buttons that are actually hyperlinks which link to that.
 
@@ -219,7 +219,7 @@ Confirm that clicking these updated Delete buttons on both pages triggers GET re
 >The server logs should report a status code of 302 (REDIRECT) for `GET /stuff/item/:id/delete`, followed by a `GET /stuff`.
 
 
-#### (4.4) Using Forms and POST requests
+## (5.3) Using Forms and POST requests
 
 So far, all of the interaction between the user and the web server have been through GET requests sent by the browser. These are typically triggered by
 
@@ -258,7 +258,7 @@ Fortunately, our prototypes already had two forms set up - the only thing that n
 > If you click submit on our app's forms now, they appear to refresh the page. But if you look at the URL bar, the new URL includes a `?` symbol, followed by the form's inputs. Express typically ignores that part of the URL when resolving the matching GET route path, but they can be treated as **parameters**. **Search bars** are a common application of this kind of form and parameterized GET request; we will add one later!
 > POST requests use a similar URL-encoding scheme to upload the inputs. However, POST requests do not update the URL bar of the browser. This is by design, as you wouldn't want someone to bookmark or share a link for a POST request.
 
-### (4.4.1) Configuring Express to parse POST request bodies
+## (5.3.1) Configuring Express to parse POST request bodies
 
 In order for Express to handle POST requests sent from forms more easily, we need to add some middleware. 
 
@@ -280,10 +280,10 @@ app.post("/stuff", ( req, res ) => {
 }
 ```
 
-### (4.4.2) Implementing the Create operation 
+## (5.4) Implementing the Create operation 
 
 
-#### (4.4.2.1) Sending an "Add" POST request: - the "Add" form
+### (5.4.1) Sending an "Add" POST request: - the "Add" form
 
 Let's make the Add Stuff form on the `/stuff' page work!
 
@@ -303,7 +303,7 @@ Note the attribute `name` of the various input elements:
 
 Note that the form inputs are named "name" and "quantity".
 
-#### Handling an "Add" POST request:
+### (5.4.2) Handling an "Add" POST request:
 
 Add this code to your `app.js`, below the other routes.
 ```js
@@ -342,7 +342,7 @@ Let's break down how the code we've just added implements the CREATE operation f
 4. **The web server uses the query results to form and send the HTTP response back to the browser**. Once again, rather than generate a new page the server sends a "redirect" to the item detail page of the newly created item.  The `results.insertId` is used to construct the matching URL.
     > Again, the server could respond by rendering a special page with a message confirming the success of the create operation, but it makes sense to simply show the user the new page that the operation has produced.
 
-### (4.5) Implementing the Update operation - 
+### (5.4.3) Implementing the Update operation - 
 
 The Update operation is extremely similar to the Create operation.
 
@@ -359,7 +359,7 @@ Again, the `action` attribute is optional here - the default action is the URL o
 Once again, note the attribute `name` of the various input elements: "name", "quantity", and "description".
 
 
-#### Handling an "Update" POST request:
+### (5.4.4) Handling an "Update" POST request:
 
 ```js
 // define a route for item UPDATE
@@ -399,9 +399,9 @@ Once again, let's break the code down and see how the Update operation flow work
 4. **The web server uses the query results to form and send the HTTP response back to the browser**. Once again, rather than generate a new page the server sends a "redirect" to the item detail page of the updated item.  In this case, `req.params.id` is used to construct the matching URL.
     > Again, the server could respond by rendering a special page with a message confirming the success of the update operation, but it makes sense to simply show the user the page that the operation has changed.
 
-#### (4.5.1) Pre-populating the "Edit" form 
+### (5.4.5) Pre-populating the "Edit" form 
 
-Lastly, it would be nice if the Edit form already contained the current values of the data. This can be easily updated by adding `value` attributes and using EJS to set them with the data context, much the way the rest of the page includes the data.
+Lastly, it would be nice if the Edit form in `item.ejs` was already prepopulated with the current values of the data. This can be easily updated by adding `value` attributes to the input elements and using EJS to set them, much the way the rest of the page is rendered with data.
 
 ```html
 <input type="text" name="name" id="nameInput" class="validate" data-length="32" value="<%= item%>" required>
@@ -411,10 +411,11 @@ Lastly, it would be nice if the Edit form already contained the current values o
 <input type="text" name="description" id="descriptionInput" data-length="100" value="<%= description%>">
 ```
 
-
 ## Summary of CRUD operations:
 
+//TODO
 
 ## What's next?
 
+//TODO
 
