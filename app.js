@@ -59,7 +59,7 @@ app.get( "/stuff/item/:id", ( req, res ) => {
         else {
             let data = results[0]; // results is still an array
             // data's object structure: 
-            //  { item: ___ , quantity:___ , description: ____ }
+            //  { id: ____, item: ___ , quantity:___ , description: ____ }
             res.render('item', data);
         }
     });
