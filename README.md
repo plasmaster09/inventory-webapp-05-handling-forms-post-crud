@@ -542,4 +542,7 @@ Restart the server, open an item detail page, and confirm that the inputs in the
 
 With all the basic CRUD routes implemented, we have a usable web-app! It is - *almost* - time to deploy a first version of our application to a cloud-hosting service. 
 
-However, there are a smattering of improvements we should and can make before we put it online. In the next tutorial, we will implement and discuss these improvements.
+However, there are a smattering of changes we need to make before we put it online. In the next tutorial (https://github.com/bca-atcs/inventory-webapp-06a-predeployment-improvements)[https://github.com/bca-atcs/inventory-webapp-06a-predeployment-improvements], we will implement and discuss these preparations.
+
+
+
