@@ -1,7 +1,7 @@
 # Part 05: Implementing CRUD operations: Using Forms and POST requests
 
 This tutorial follows after:
-[Part 04: Connecting the Layers: Rendering templates with data](https://github.com/atcs-wang/inventory-webapp-04-connecting-layers-templates)
+[Part 04: Connecting the Layers: Rendering templates with data](https://github.com/atcs-wang/inventory-webapp-04-connecting-layers-templates-read)
 
 In this tutorial, we will continue to work across all 3 layers (Browser, Web Server, Database) to implement standard "CRUD" data operations for the inventory items. In the process, we will learn to use HTML forms and HTTP POST requests to upload user-entered data to the server.
 
