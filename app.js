@@ -13,6 +13,8 @@ app.set( "view engine", "ejs" );
 // Configure Express to parse URL-encoded POST request bodies (traditional forms)
 app.use( express.urlencoded({ extended: false }) );
 
+
+
 // define middleware that logs all incoming requests
 app.use(logger("dev"));
 
@@ -39,6 +41,10 @@ app.get( "/stuff", ( req, res ) => {
             res.render('stuff', { inventory : results });
         }
     });
+} );
+
+app.get( "/grid", ( req, res ) => {
+    res.render('grid');
 } );
 
 // define a route for the item detail page
